@@ -810,7 +810,9 @@ private struct SwitchKeysMenu: View {
 
     var body: some View {
         Menu {
-            Button(L("Default (%@)", inherited.isEmpty ? L("None") : SwitchKey.sorted(inherited).map(\.displayName).joined(separator: ", "))) { set(nil) }
+            // Checked while the app follows the default; choosing it drops the app's own keys.
+            Toggle(L("Default (%@)", SwitchKey.shortNames(inherited)),
+                   isOn: Binding(get: { own == nil }, set: { if $0 { set(nil) } }))
             Divider()
             ForEach(SwitchKey.allCases, id: \.self) { key in
                 Toggle(key.displayName, isOn: Binding(
