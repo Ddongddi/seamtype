@@ -45,16 +45,18 @@ extension SwitchKey {
 
     /// The keys in a few characters each, for a narrow column ("right ⌥, ⇧Esc").
     static func shortNames(_ keys: Set<SwitchKey>) -> String {
-        keys.isEmpty ? L("None") : sorted(keys).map { $0.caption == nil ? $0.displayName : L("right %@", $0.glyph) }
+        keys.isEmpty ? L("None") : sorted(keys).map(\.label)
             .joined(separator: ", ")
     }
+
+    /// On a small keycap: "right ⌥", "⌥Space", "Esc".
+    var label: String { caption == nil ? displayName : L("right %@", glyph) }
 
     /// The keys in the settings' order.
     static func sorted(_ keys: Set<SwitchKey>) -> [SwitchKey] { allCases.filter(keys.contains) }
 }
 
-/// A key as it looks on the keyboard: the glyph, and under it which one. Chosen keys are filled
-/// with the accent color and checked, so the state doesn't rest on color alone.
+/// A key as a small keycap, the size of a list's: chosen ones are filled with the accent color.
 struct Keycap: View {
     let key: SwitchKey
     let on: Bool
@@ -64,38 +66,23 @@ struct Keycap: View {
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 7, style: .continuous)
-        VStack(spacing: 1) {
-            Text(verbatim: key.glyph)
-                .font(.system(size: key.glyph.count == 1 ? 15 : 12, weight: .medium, design: .rounded))
-            Text(key.caption ?? " ")
-                .font(.system(size: 9))
-                .opacity(key.caption == nil ? 0 : 0.8)
-        }
-        .foregroundStyle(on ? Color.white : Color.primary)
-        .frame(width: 68, height: 40)
-        .background {
-            shape.fill(on ? Color.accentColor : Color(nsColor: .controlBackgroundColor))
-                // The key's lower edge, as on a keycap; it sinks while pressed.
-                .shadow(color: .black.opacity(on ? 0.28 : 0.14), radius: 0, y: pressed ? 0 : 1.5)
-        }
-        .overlay {
-            shape.strokeBorder(on ? Color.clear : (contrast == .increased ? Color.primary : Color(nsColor: .separatorColor)),
-                               lineWidth: 1)
-        }
-        .overlay {
-            if hovering && !on { shape.fill(Color.primary.opacity(0.04)) }
-        }
-        .overlay(alignment: .topTrailing) {
-            if on {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 7, weight: .bold))
-                    .foregroundStyle(.white)
-                    .padding(4)
+        let shape = RoundedRectangle(cornerRadius: 4, style: .continuous)
+        Text(verbatim: key.label)
+            .font(.system(size: 11, weight: .medium, design: .rounded))
+            .lineLimit(1)
+            .foregroundStyle(on ? Color.white : Color.primary)
+            .padding(.horizontal, 6).padding(.vertical, 2)
+            .background {
+                shape.fill(on ? Color.accentColor : Color(nsColor: .controlBackgroundColor))
+                    // The key's lower edge; it sinks while pressed.
+                    .shadow(color: .black.opacity(on ? 0.25 : 0.1), radius: 0, y: pressed ? 0 : 1)
             }
-        }
-        .offset(y: pressed ? 1 : 0)
-        .opacity(isEnabled ? 1 : 0.5)
+            .overlay {
+                shape.strokeBorder(on ? Color.clear : (contrast == .increased ? Color.primary : Color(nsColor: .separatorColor)))
+            }
+            .overlay { if hovering && !on { shape.fill(Color.primary.opacity(0.05)) } }
+            .offset(y: pressed ? 0.5 : 0)
+            .opacity(isEnabled ? 1 : 0.5)
     }
 }
 
@@ -105,7 +92,7 @@ struct KeycapToggles: View {
     let set: (SwitchKey, Bool) -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 4) {
             ForEach(SwitchKey.allCases, id: \.self) { key in
                 Toggle(key.displayName, isOn: Binding(get: { selection.contains(key) }, set: { set(key, $0) }))
                     .toggleStyle(KeycapToggleStyle(key: key))
@@ -164,7 +151,7 @@ struct MiniKeycaps: View {
                     .foregroundStyle(.orange)
             }
             ForEach(SwitchKey.sorted(keys), id: \.self) { key in
-                Text(verbatim: key.caption == nil ? key.displayName : L("right %@", key.glyph))
+                Text(verbatim: key.label)
                     .font(.system(size: 11, weight: .medium, design: .rounded))
                     .lineLimit(1)
                     .padding(.horizontal, 6).padding(.vertical, 2)

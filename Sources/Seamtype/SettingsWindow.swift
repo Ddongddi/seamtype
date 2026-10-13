@@ -507,26 +507,22 @@ private struct KeysPane: View {
     var body: some View {
         Form {
             Section {
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(L("Switch a word's language"))
-                            Text(L("While typing, or right after the word. Choose as many as you like."))
-                                .font(.subheadline).foregroundStyle(.secondary)
+                LabeledContent {
+                    HStack(spacing: 4) {
+                        KeycapToggles(selection: model.defaultPolicy.switchKeys) { key, on in
+                            model.setDefault { if on { $0.switchKeys.insert(key) } else { $0.switchKeys.remove(key) } }
                         }
-                        Spacer()
                         Button { showInfo.toggle() } label: { Image(systemName: "info.circle") }
                             .buttonStyle(.borderless)
+                            .padding(.leading, 4)
                             .help(L("Which key to choose"))
                             .accessibilityLabel(L("Which key to choose"))
                             .popover(isPresented: $showInfo, arrowEdge: .trailing) { SwitchKeysInfo() }
                     }
-                    KeycapToggles(selection: model.defaultPolicy.switchKeys) { key, on in
-                        model.setDefault { if on { $0.switchKeys.insert(key) } else { $0.switchKeys.remove(key) } }
-                    }
+                } label: {
+                    Text(L("Switch a word's language"))
                     SwitchKeysStatus(keys: model.defaultPolicy.switchKeys)
                 }
-                .padding(.vertical, 6)
                 LabeledContent {
                     Button(L("Apps…")) { model.tab = .apps }
                 } label: {
@@ -564,11 +560,10 @@ private struct SwitchKeysStatus: View {
                 Label(L("Nothing switches a word's language."), systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
             } else if others.isEmpty {
-                Label(L("All of these switch languages."), systemImage: "checkmark.circle")
+                Text(L("All of these switch languages."))
                     .foregroundStyle(.secondary)
             } else {
-                Label(L("Go to the app as usual: %@", others.map(\.displayName).joined(separator: ", ")),
-                      systemImage: "arrow.turn.down.right")
+                Text(L("Go to the app as usual: %@", others.map(\.displayName).joined(separator: ", ")))
                     .foregroundStyle(.secondary)
             }
         }
