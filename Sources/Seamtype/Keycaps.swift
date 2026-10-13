@@ -64,16 +64,16 @@ struct Keycap: View {
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 9, style: .continuous)
-        VStack(spacing: 2) {
+        let shape = RoundedRectangle(cornerRadius: 7, style: .continuous)
+        VStack(spacing: 1) {
             Text(verbatim: key.glyph)
-                .font(.system(size: key.glyph.count == 1 ? 20 : 14, weight: .medium, design: .rounded))
+                .font(.system(size: key.glyph.count == 1 ? 15 : 12, weight: .medium, design: .rounded))
             Text(key.caption ?? " ")
-                .font(.system(size: 10))
+                .font(.system(size: 9))
                 .opacity(key.caption == nil ? 0 : 0.8)
         }
         .foregroundStyle(on ? Color.white : Color.primary)
-        .frame(maxWidth: .infinity, minHeight: 54, maxHeight: 54)
+        .frame(width: 68, height: 40)
         .background {
             shape.fill(on ? Color.accentColor : Color(nsColor: .controlBackgroundColor))
                 // The key's lower edge, as on a keycap; it sinks while pressed.
@@ -89,9 +89,9 @@ struct Keycap: View {
         .overlay(alignment: .topTrailing) {
             if on {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.system(size: 7, weight: .bold))
                     .foregroundStyle(.white)
-                    .padding(7)
+                    .padding(4)
             }
         }
         .offset(y: pressed ? 1 : 0)
@@ -105,7 +105,7 @@ struct KeycapToggles: View {
     let set: (SwitchKey, Bool) -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             ForEach(SwitchKey.allCases, id: \.self) { key in
                 Toggle(key.displayName, isOn: Binding(get: { selection.contains(key) }, set: { set(key, $0) }))
                     .toggleStyle(KeycapToggleStyle(key: key))
