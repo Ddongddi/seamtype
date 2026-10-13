@@ -130,8 +130,7 @@ public struct AppPolicies: Sendable {
     }
 
     public static var storeURL: URL? {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
-            .appendingPathComponent("Seamtype/apps.json")
+        SupportDirectory.url?.appendingPathComponent("apps.json")
     }
 
     /// Loads user overrides; a missing or unreadable file means none.

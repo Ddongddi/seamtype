@@ -115,7 +115,7 @@ for きょうはいいてんきですね) commits that part and keeps converting
 
 ### Language switch keys
 
-Choose the keys that switch readings under Keys in the settings window's General pane: right ⌥
+Choose the keys that switch readings in the settings window's Keys pane, keycaps you click: right ⌥
 tapped alone, ⌥Space, right ⇧ tapped alone, Esc and ⇧Esc, as many as you like. By default they are
 **right ⌥ tapped alone** and **⇧Esc**. A key not chosen goes to the app.
 
@@ -161,7 +161,7 @@ another app or text field, or change a setting, to resume.
 
 Each tap shows Seamtype's icon under the caret for a moment, like the input source indicator,
 struck through when paused. The menu bar icon doesn't change, so to check later, look for the tick
-in the input menu. Turn the key off under General in the settings window.
+in the input menu. Turn the key off under Keys in the settings window.
 
 ### vim
 
@@ -197,9 +197,10 @@ From the input menu (the menu bar, while Seamtype is selected) you can:
 - turn Japanese Input and Live Conversion on or off
 - undo the last learned word, and open Try Typing, the remembered words or the settings window
 
-The settings window has General, Try Typing (how each word was decided, with scores), per-app
-behavior, the learned words (forget one or all) and About. The kanji candidate order resets under
-Japanese. Changes apply at once.
+The settings window has Languages (Japanese and its options), Keys (the language switch keys,
+Return, right ⌘), per-app behavior, Try Typing (how each word was decided, with scores), the learned
+words (forget one or all) and About. The kanji candidate order resets under Japanese input in
+Languages. Changes apply at once.
 
 ### Settings files
 

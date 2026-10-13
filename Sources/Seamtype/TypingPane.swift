@@ -71,6 +71,13 @@ struct TypingPane: View {
                     }
                     .disabled(text.isEmpty && current == nil)
                 }
+            } footer: {
+                HStack(spacing: 8) {
+                    Example(keys: "dkssud githubdp", output: "안녕 github에")
+                    Example(keys: "hello TextEditdptj", output: "hello TextEdit에서")
+                    Example(keys: "kyouha ␣", output: "今日は")
+                }
+                .padding(.top, 4)
             }
 
             Section(L("How it was decided")) {

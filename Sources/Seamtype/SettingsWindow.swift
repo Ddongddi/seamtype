@@ -6,13 +6,14 @@ import SwiftUI
 /// itself is a background-only app that can't take keyboard focus for a window. It edits the
 /// files in the support folder and tells the input method to read them again.
 enum SettingsTab: String, CaseIterable, Identifiable {
-    case general, typing, apps, learning, about
+    case general, keys, apps, typing, learning, about
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .general: return L("General")
+        case .general: return L("Languages")
+        case .keys: return L("Keys")
         case .typing: return L("Try Typing")
         case .apps: return L("Apps")
         case .learning: return L("Learning")
@@ -22,8 +23,9 @@ enum SettingsTab: String, CaseIterable, Identifiable {
 
     var symbol: String {
         switch self {
-        case .general: return "gearshape"
-        case .typing: return "keyboard"
+        case .general: return "globe"
+        case .keys: return "command"
+        case .typing: return "character.cursor.ibeam"
         case .apps: return "macwindow"
         case .learning: return "book.closed"
         case .about: return "info.circle"
@@ -278,21 +280,6 @@ private enum Strictness {
     }
 }
 
-private func switchKeyName(_ key: SwitchKey) -> String {
-    switch key {
-    case .rightOption: return L("Right ⌥ tap")
-    case .optionSpace: return L("⌥Space")
-    case .rightShift: return L("Right ⇧ tap")
-    case .escape: return "Esc"
-    case .shiftEscape: return "⇧Esc"
-    }
-}
-
-/// The chosen keys in the settings' order, or "None".
-private func switchKeysName(_ keys: Set<SwitchKey>) -> String {
-    keys.isEmpty ? L("None") : SwitchKey.allCases.filter(keys.contains).map(switchKeyName).joined(separator: ", ")
-}
-
 private func strictnessExplanation(_ threshold: Double) -> String {
     threshold >= AppPolicy.strictThreshold
         ? L("Converts only words that are clearly Korean or Japanese, so short commands stay as typed (gst stays gst). For terminals.")
@@ -436,6 +423,7 @@ struct SettingsView: View {
             Group {
                 switch model.tab {
                 case .general: GeneralPane(model: model)
+                case .keys: KeysPane(model: model)
                 case .typing: TypingPane(model: model)
                 case .apps: AppsPane(model: model)
                 case .learning: LearningPane(model: model)
@@ -460,86 +448,36 @@ private struct GeneralPane: View {
 
     var body: some View {
         Form {
-            Section {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(L("Type on the English layout; each word comes out in the language you meant."))
-                        .font(.callout).foregroundStyle(.secondary)
-                    HStack(spacing: 8) {
-                        Example(keys: "dkssud githubdp", output: "안녕 github에")
-                        Example(keys: "hello TextEditdptj", output: "hello TextEdit에서")
-                        Example(keys: "kyouha ␣", output: "今日は")
-                    }
-                }
-                .padding(.vertical, 4)
-            }
             Section(L("Languages")) {
-                LabeledContent(L("Korean · English")) { Text(L("Always on")).foregroundStyle(.secondary) }
+                LabeledContent(L("Korean · English")) {
+                    Text(L("Always on")).foregroundStyle(.secondary)
+                }
                 Toggle(isOn: binding(\.japanese)) {
                     Text(L("Japanese"))
                     Text(L("Romaji becomes kana; Space converts to kanji."))
                 }
-                Group {
-                    Toggle(isOn: binding(\.liveConversion)) {
-                        Text(L("Live conversion"))
-                        Text(L("Shows the top kanji candidate as you type."))
-                    }
-                    Toggle(isOn: binding(\.fullWidthDigits)) {
-                        Text(L("Full-width numbers"))
-                        Text(L("After Japanese, numbers come out full-width (１２３); Space offers 123."))
-                    }
-                    Toggle(isOn: binding(\.fullWidthSpace)) {
-                        Text(L("Full-width space"))
-                        Text(L("After Japanese, Space types a full-width space. ⇧Space types the other width."))
-                    }
-                    LabeledContent {
-                        Button(L("Reset…")) { confirmKanji = true }
-                    } label: {
-                        Text(L("Kanji candidate order"))
-                        Text(L("Kanji you pick in the candidate window come first next time."))
-                    }
-                }
-                .padding(.leading, 18)
-                .disabled(!model.settings.japanese)
             }
-            Section(L("When a word comes out wrong")) {
-                LabeledContent {
-                    Text(switchKeysName(model.defaultPolicy.switchKeys)).foregroundStyle(.secondary)
-                } label: {
-                    Text(L("Switch its language"))
-                    Text(L("While typing, or right after the word. Choose the keys under Keys."))
+            if model.settings.japanese {
+            Section(L("Japanese input")) {
+                Toggle(isOn: binding(\.liveConversion)) {
+                    Text(L("Live conversion"))
+                    Text(L("Shows the top kanji candidate as you type."))
+                }
+                Toggle(isOn: binding(\.fullWidthDigits)) {
+                    Text(L("Full-width numbers"))
+                    Text(L("１２３ after Japanese; Space offers 123."))
+                }
+                Toggle(isOn: binding(\.fullWidthSpace)) {
+                    Text(L("Full-width space"))
+                    Text(L("A full-width space after Japanese; ⇧Space types the other width."))
                 }
                 LabeledContent {
-                    Button(L("Show Remembered Words")) { model.tab = .learning }
+                    Button(L("Reset…")) { confirmKanji = true }
                 } label: {
-                    Text(L("Remembering"))
-                    Text(L("Correct the same word the same way twice and Seamtype keeps it."))
+                    Text(L("Kanji candidate order"))
+                    Text(L("Kanji you pick come first next time."))
                 }
             }
-            Section(L("Keys")) {
-                Toggle(isOn: binding(\.returnConfirmsOnly)) {
-                    Text(L("Return only confirms"))
-                    Text(L("Return on an underlined English or Korean word confirms it; press it again for a new line or to send. Off, the app gets that Return too. Japanese is always only confirmed."))
-                }
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(L("Language switch keys"))
-                    Text(L("Switch the word you're typing, or the one just typed. A key not chosen goes to the app. Apps ignore a right ⌥ or ⇧ tap, so unlike Esc it never closes a window or clears what you wrote. Apps settings can choose other keys for one app."))
-                        .font(.subheadline).foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    ForEach(SwitchKey.allCases, id: \.self) { key in
-                        Toggle(switchKeyName(key), isOn: Binding(
-                            get: { model.defaultPolicy.switchKeys.contains(key) },
-                            set: { on in model.setDefault { if on { $0.switchKeys.insert(key) } else { $0.switchKeys.remove(key) } } }))
-                    }
-                    .padding(.leading, 18)
-                    if model.defaultPolicy.switchKeys.isEmpty {
-                        Label(L("Nothing switches a word's language."), systemImage: "exclamationmark.triangle")
-                            .font(.subheadline).foregroundStyle(.secondary)
-                    }
-                }
-                Toggle(isOn: binding(\.rightCommandPause)) {
-                    Text(L("Right ⌘ pauses"))
-                    Text(L("Tap right ⌘ on its own and keys go through as typed in that text field, for hjkl in terminal programs. Tap again, or move to another field, to resume."))
-                }
             }
         }
         .formStyle(.grouped)
@@ -551,7 +489,117 @@ private struct GeneralPane: View {
     }
 }
 
-private struct Example: View {
+// MARK: - Keys
+
+private struct KeysPane: View {
+    @ObservedObject var model: SettingsModel
+    @State private var showInfo = false
+
+    private func binding(_ key: WritableKeyPath<SeamtypeCore.Settings, Bool>) -> Binding<Bool> {
+        Binding(get: { model.settings[keyPath: key] }, set: { model.set(key, $0) })
+    }
+
+    /// Apps whose switch keys differ from the default.
+    private var appsWithOwnKeys: Int {
+        model.apps.filter { $0.entry.applied(to: model.defaultPolicy).switchKeys != model.defaultPolicy.switchKeys }.count
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(L("Switch a word's language"))
+                            Text(L("While typing, or right after the word. Choose as many as you like."))
+                                .font(.subheadline).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button { showInfo.toggle() } label: { Image(systemName: "info.circle") }
+                            .buttonStyle(.borderless)
+                            .help(L("Which key to choose"))
+                            .accessibilityLabel(L("Which key to choose"))
+                            .popover(isPresented: $showInfo, arrowEdge: .trailing) { SwitchKeysInfo() }
+                    }
+                    KeycapToggles(selection: model.defaultPolicy.switchKeys) { key, on in
+                        model.setDefault { if on { $0.switchKeys.insert(key) } else { $0.switchKeys.remove(key) } }
+                    }
+                    SwitchKeysStatus(keys: model.defaultPolicy.switchKeys)
+                }
+                .padding(.vertical, 6)
+                LabeledContent {
+                    Button(L("Apps…")) { model.tab = .apps }
+                } label: {
+                    Text(L("In some apps only"))
+                    Text(appsWithOwnKeys == 0 ? L("Every app uses these keys.")
+                         : appsWithOwnKeys == 1 ? L("One app uses its own keys.")
+                         : L("%ld apps use their own keys.", appsWithOwnKeys))
+                }
+            } header: {
+                Text(L("Language switch keys"))
+            }
+            Section(L("Other keys")) {
+                Toggle(isOn: binding(\.returnConfirmsOnly)) {
+                    Text(L("Return only confirms"))
+                    Text(L("Return on an underlined word confirms it; press it again for a new line. Japanese is always only confirmed."))
+                }
+                Toggle(isOn: binding(\.rightCommandPause)) {
+                    Text(L("Right ⌘ tap pauses"))
+                    Text(L("Keys go through as typed in that text field, for hjkl in terminal programs. Tap again to resume."))
+                }
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+/// Under the keycaps: what happens to the keys not chosen, or that none is.
+private struct SwitchKeysStatus: View {
+    let keys: Set<SwitchKey>
+
+    var body: some View {
+        let others = SwitchKey.allCases.filter { !keys.contains($0) }
+        Group {
+            if keys.isEmpty {
+                Label(L("Nothing switches a word's language."), systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+            } else if others.isEmpty {
+                Label(L("All of these switch languages."), systemImage: "checkmark.circle")
+                    .foregroundStyle(.secondary)
+            } else {
+                Label(L("Go to the app as usual: %@", others.map(\.displayName).joined(separator: ", ")),
+                      systemImage: "arrow.turn.down.right")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .font(.subheadline)
+    }
+}
+
+/// What each key is good for, behind the info button.
+private struct SwitchKeysInfo: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(L("Which key to choose")).font(.headline)
+            ForEach(SwitchKey.allCases, id: \.self) { key in
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(key.displayName).font(.callout.weight(.medium))
+                    Text(key.help).font(.callout).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Divider()
+            Text(L("A right ⌥ or ⇧ tap with other modifiers (a Hyper key) is left to what it's bound to."))
+                .font(.callout).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(width: 320)
+    }
+}
+
+/// Keys and what they come out as, for trying.
+struct Example: View {
     let keys: String
     let output: String
 
@@ -582,6 +630,14 @@ private struct AppsPane: View {
                     Text(L("Off: keys go to the app as typed, as with the ABC layout."))
                 }
                 Group {
+                    LabeledContent {
+                        HStack(spacing: 10) {
+                            MiniKeycaps(keys: model.defaultPolicy.switchKeys)
+                            Button(L("Change…")) { model.tab = .keys }
+                        }
+                    } label: {
+                        Text(L("Language switch keys"))
+                    }
                     ChoiceRow(title: L("Conversion"),
                               explanation: strictnessExplanation(model.defaultPolicy.conversionThreshold)) {
                         Picker(L("Conversion"), selection: Binding(
@@ -707,8 +763,8 @@ private struct ChoiceRow<Choice: View>: View {
 
 /// Column widths shared by the exceptions' header and rows.
 private enum AppColumns {
-    static let conversion: CGFloat = 140
-    static let switchKeys: CGFloat = 190
+    static let conversion: CGFloat = 130
+    static let switchKeys: CGFloat = 230
     static let enabled: CGFloat = 100
 }
 
@@ -759,10 +815,10 @@ private struct SwitchKeysMenu: View {
 
     var body: some View {
         Menu {
-            Button(L("Default (%@)", switchKeysName(inherited))) { set(nil) }
+            Button(L("Default (%@)", inherited.isEmpty ? L("None") : SwitchKey.sorted(inherited).map(\.displayName).joined(separator: ", "))) { set(nil) }
             Divider()
             ForEach(SwitchKey.allCases, id: \.self) { key in
-                Toggle(switchKeyName(key), isOn: Binding(
+                Toggle(key.displayName, isOn: Binding(
                     get: { (own ?? effective).contains(key) },
                     set: { on in
                         var keys = own ?? effective
@@ -771,8 +827,9 @@ private struct SwitchKeysMenu: View {
                     }))
             }
         } label: {
-            Text(own.map { $0.isEmpty ? L("None — can't switch") : switchKeysName($0) }
-                 ?? L("Default · %@", switchKeysName(effective)))
+            // A menu's label shows only text.
+            Text(own.map { $0.isEmpty ? L("None — can't switch") : SwitchKey.shortNames($0) }
+                 ?? L("Default · %@", SwitchKey.shortNames(effective)))
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
