@@ -60,7 +60,7 @@ struct TypingPane: View {
                         }
                     }
                 HStack {
-                    Text(L("Esc switches the word's reading; right after a word, Esc changes that word."))
+                    Text(L("The language switch key changes the word's reading, also right after the word."))
                         .font(.caption).foregroundStyle(.secondary)
                     Spacer()
                     Button(L("Clear")) {

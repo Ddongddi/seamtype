@@ -159,6 +159,7 @@ final class SettingsModel: ObservableObject {
 
     init(tab: SettingsTab) {
         self.tab = tab
+        AppPolicies.migrateSwitchKey() // before the window shows (or saves) anything
         reload()
     }
 
@@ -277,12 +278,19 @@ private enum Strictness {
     }
 }
 
-private func escapeName(_ toApp: Bool) -> String { toApp ? L("Send to app") : L("Switch language") }
+private func switchKeyName(_ key: SwitchKey) -> String {
+    switch key {
+    case .rightOption: return L("Right ⌥ tap")
+    case .optionSpace: return L("⌥Space")
+    case .rightShift: return L("Right ⇧ tap")
+    case .escape: return "Esc"
+    case .shiftEscape: return "⇧Esc"
+    }
+}
 
-/// What the Esc choice does, shown under the picker.
-private func escapeExplanation(_ toApp: Bool) -> String {
-    toApp ? L("Esc finishes the word and goes to the app. ⇧Esc changes the language.")
-          : L("Esc changes the word you're typing, or the one just typed, to another language. The app doesn't get that Esc.")
+/// The chosen keys in the settings' order, or "None".
+private func switchKeysName(_ keys: Set<SwitchKey>) -> String {
+    keys.isEmpty ? L("None") : SwitchKey.allCases.filter(keys.contains).map(switchKeyName).joined(separator: ", ")
 }
 
 private func strictnessExplanation(_ threshold: Double) -> String {
@@ -495,10 +503,10 @@ private struct GeneralPane: View {
             }
             Section(L("When a word comes out wrong")) {
                 LabeledContent {
-                    Text(verbatim: "Esc").foregroundStyle(.secondary)
+                    Text(switchKeysName(model.defaultPolicy.switchKeys)).foregroundStyle(.secondary)
                 } label: {
                     Text(L("Switch its language"))
-                    Text(L("While typing, or right after the word. ⇧Esc in apps where Esc goes to the app."))
+                    Text(L("While typing, or right after the word. Choose the keys under Keys."))
                 }
                 LabeledContent {
                     Button(L("Show Remembered Words")) { model.tab = .learning }
@@ -512,15 +520,21 @@ private struct GeneralPane: View {
                     Text(L("Return only confirms"))
                     Text(L("Return on an underlined English or Korean word confirms it; press it again for a new line or to send. Off, the app gets that Return too. Japanese is always only confirmed."))
                 }
-                Picker(selection: Binding(get: { model.settings.switchKey },
-                                          set: { model.set(\.switchKey, $0) })) {
-                    Text(L("Right ⌥ tap")).tag(SwitchKey.rightOption)
-                    Text(L("⌥Space")).tag(SwitchKey.optionSpace)
-                    Text(L("Right ⇧ tap")).tag(SwitchKey.rightShift)
-                    Text(L("None (Esc only)")).tag(SwitchKey.off)
-                } label: {
-                    Text(L("Language switch key"))
-                    Text(L("Switches the word you're typing, or the one just typed, like ⇧Esc. Apps ignore it, so unlike Esc it never closes a window or clears what you wrote."))
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L("Language switch keys"))
+                    Text(L("Switch the word you're typing, or the one just typed. A key not chosen goes to the app. Apps ignore a right ⌥ or ⇧ tap, so unlike Esc it never closes a window or clears what you wrote. Apps settings can choose other keys for one app."))
+                        .font(.subheadline).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    ForEach(SwitchKey.allCases, id: \.self) { key in
+                        Toggle(switchKeyName(key), isOn: Binding(
+                            get: { model.defaultPolicy.switchKeys.contains(key) },
+                            set: { on in model.setDefault { if on { $0.switchKeys.insert(key) } else { $0.switchKeys.remove(key) } } }))
+                    }
+                    .padding(.leading, 18)
+                    if model.defaultPolicy.switchKeys.isEmpty {
+                        Label(L("Nothing switches a word's language."), systemImage: "exclamationmark.triangle")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                    }
                 }
                 Toggle(isOn: binding(\.rightCommandPause)) {
                     Text(L("Right ⌘ pauses"))
@@ -575,14 +589,6 @@ private struct AppsPane: View {
                             set: { value in model.setDefault { $0.conversionThreshold = value } })) {
                             Text(L("Normal")).tag(AppPolicy.standard.conversionThreshold)
                             Text(L("Strict")).tag(AppPolicy.strictThreshold)
-                        }
-                    }
-                    ChoiceRow(title: L("Esc key"), explanation: escapeExplanation(model.defaultPolicy.escapeToApp)) {
-                        Picker(L("Esc key"), selection: Binding(
-                            get: { model.defaultPolicy.escapeToApp },
-                            set: { value in model.setDefault { $0.escapeToApp = value } })) {
-                            Text(L("Switch language")).tag(false)
-                            Text(L("Send to app")).tag(true)
                         }
                     }
                 }
@@ -662,12 +668,12 @@ private struct AppRowView: View {
                     model.setEntry(for: row.id) { $0.conversionThreshold = value }
                 }
                 .frame(width: AppColumns.conversion, alignment: .leading)
-                FieldMenu(own: row.entry.escapeToApp.map(escapeName),
-                          inherited: escapeName(defaultPolicy.escapeToApp),
-                          choices: [(L("Switch language"), false), (L("Send to app"), true)]) { value in
-                    model.setEntry(for: row.id) { $0.escapeToApp = value }
+                SwitchKeysMenu(own: row.entry.switchKeys,
+                               effective: row.entry.applied(to: defaultPolicy).switchKeys,
+                               inherited: defaultPolicy.switchKeys) { value in
+                    model.setEntry(for: row.id) { $0.switchKeys = value }
                 }
-                .frame(width: AppColumns.escape, alignment: .leading)
+                .frame(width: AppColumns.switchKeys, alignment: .leading)
             }
             .disabled(!(row.entry.enabled ?? defaultPolicy.enabled))
         }
@@ -702,7 +708,7 @@ private struct ChoiceRow<Choice: View>: View {
 /// Column widths shared by the exceptions' header and rows.
 private enum AppColumns {
     static let conversion: CGFloat = 140
-    static let escape: CGFloat = 190
+    static let switchKeys: CGFloat = 190
     static let enabled: CGFloat = 100
 }
 
@@ -713,7 +719,7 @@ private struct AppColumnsHeader: View {
             Text(L("App")).frame(maxWidth: .infinity, alignment: .leading)
             Text(L("Convert words")).frame(width: AppColumns.enabled, alignment: .leading)
             Text(L("Conversion")).frame(width: AppColumns.conversion, alignment: .leading)
-            Text(L("Esc key")).frame(width: AppColumns.escape, alignment: .leading)
+            Text(L("Switch keys")).frame(width: AppColumns.switchKeys, alignment: .leading)
         }
         .font(.caption).foregroundStyle(.secondary).lineLimit(1)
         .accessibilityHidden(true)
@@ -737,6 +743,36 @@ private struct FieldMenu<Value>: View {
             }
         } label: {
             Text(own ?? L("Default · %@", inherited))
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+    }
+}
+
+/// An app's switch keys: "Default · <keys>" while it follows the default, else its own set,
+/// changed one key at a time (the first change starts from what the app has now).
+private struct SwitchKeysMenu: View {
+    let own: Set<SwitchKey>?
+    let effective: Set<SwitchKey>
+    let inherited: Set<SwitchKey>
+    let set: (Set<SwitchKey>?) -> Void
+
+    var body: some View {
+        Menu {
+            Button(L("Default (%@)", switchKeysName(inherited))) { set(nil) }
+            Divider()
+            ForEach(SwitchKey.allCases, id: \.self) { key in
+                Toggle(switchKeyName(key), isOn: Binding(
+                    get: { (own ?? effective).contains(key) },
+                    set: { on in
+                        var keys = own ?? effective
+                        if on { keys.insert(key) } else { keys.remove(key) }
+                        set(keys)
+                    }))
+            }
+        } label: {
+            Text(own.map { $0.isEmpty ? L("None — can't switch") : switchKeysName($0) }
+                 ?? L("Default · %@", switchKeysName(effective)))
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
@@ -776,7 +812,7 @@ private struct LearningPane: View {
                 EmptyList(symbol: search.isEmpty ? "text.book.closed" : "magnifyingglass",
                           title: search.isEmpty ? (showPending ? L("No words corrected once") : L("No remembered words yet"))
                                                 : L("No matches"),
-                          detail: search.isEmpty ? L("Press Esc on a word that came out wrong; correct it the same way twice and it's remembered here.") : nil)
+                          detail: search.isEmpty ? L("Switch a word that came out wrong with the language switch key; correct it the same way twice and it's remembered here.") : nil)
             } else {
                 List {
                     ForEach(words) { WordRow(word: $0, model: model) }
