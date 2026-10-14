@@ -262,7 +262,8 @@ Vim(8.2 이상, `+job`)은 [`scripts/vim/seamtype.vim`](scripts/vim/seamtype.vim
    - 한국어 뒤에 붙인 영어 단어: `dhsmfdmsgoogledptj` → `오늘은google에서`. 한국어 부분을 먼저 확정하고
      나머지를 이어서 칩니다.
    - 일본어를 켰을 때:
-     - 아는 영어 단어 + 격조사 하나: `githubde` → `githubで`
+     - 아는 영어 단어나 대문자로 친 약어·이름 + 격조사 하나: `githubde` → `githubで`, `APIwo` → `APIを`,
+       `redde` → `redで`(키가 모두 가나가 되어도 일본어로 읽히지 않으면)
      - 한국어 뒤에 붙인 일본어: `dlfurrireki` → `이력りれき`(Space로 `履歴`)
      - 일본어 뒤에 붙인 한국어 조사나 단어: `rirekifmf` → `りれき를`, `kyouhaehtlfkrdms` → `きょうは도시락은`.
        일본어 부분은 그 자리에서 확정되므로, 라이브 변환을 켜면 `履歴를`, `今日は도시락은`처럼 한자로

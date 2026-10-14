@@ -277,7 +277,9 @@ Locally, in this order. A keystroke's preview takes at most ~3 ms and a word's f
    - Korean, then an English word: `dhsmfdmsgoogledptj` → `오늘은google에서`. The Korean goes in
      and the rest keeps composing.
    - With Japanese on:
-     - a known English word + one case particle: `githubde` → `githubで`
+     - a known English word, or an acronym or name typed in capitals, + one case particle:
+       `githubde` → `githubで`, `APIwo` → `APIを`, `redde` → `redで` (even when every key makes kana,
+       unless it reads as Japanese)
      - Japanese after Korean: `dlfurrireki` → `이력りれき` (Space for `履歴`)
      - a Korean particle or word after Japanese: `rirekifmf` → `りれき를`,
        `kyouhaehtlfkrdms` → `きょうは도시락은`. The Japanese part is committed on the spot, so with

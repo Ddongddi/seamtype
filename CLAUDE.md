@@ -137,6 +137,8 @@ runtime.
   - Run every keys row of `tools/data/eval.tsv` (English, Korean, Japanese) through an
     `InputSession` with Japanese on, and count Hangul next to kana.
   - For English, also run `tools/data/en_50k.txt` through `seamtype-cli -v`.
+  - For English + particle, `tools/eval_particles.py` types word × particle through a session
+    (`seamtype-cli --type`) and reports accuracy per kind, plus words that must stay English.
   - The CLI only shows the engine's decision, so also test through a session: an earlier split
     looked right in the CLI but never reached real typing.
 - **Install refreshes:** after a reinstall, the input menu keeps its old list until

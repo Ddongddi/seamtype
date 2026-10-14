@@ -110,15 +110,16 @@ public final class SplittingEngine: DecisionEngine, @unchecked Sendable {
             return Decision(language: .mixed, confidence: Self.confidence, output: mixed.text,
                             explanation: "split \(mixed.english)+\(mixed.korean)")
         }
-        if let mixed = englishThenKoreanWord(keys) {
-            return Decision(language: .mixed, confidence: Self.confidence, output: mixed.text,
-                            explanation: "split \(mixed.english)+\(mixed.korean)")
-        }
+        // Before English + Korean word: beautywo is beauty + を, not beau + 쇼재.
         // Not when the keys spell a Korean word: guswo is 현재, not gus + を (but slackwo,
         // 님차재, is no word, so slackを).
         if let (word, particle) = japanese?.englishWithParticle(keys), !isKoreanWord(keys) {
             return Decision(language: .japanese, confidence: Self.confidence, output: word + particle,
                             explanation: "split \(word)+\(particle)")
+        }
+        if let mixed = englishThenKoreanWord(keys) {
+            return Decision(language: .mixed, confidence: Self.confidence, output: mixed.text,
+                            explanation: "split \(mixed.english)+\(mixed.korean)")
         }
         return base.decide(keys, context: context)
     }

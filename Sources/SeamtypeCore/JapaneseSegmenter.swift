@@ -57,15 +57,61 @@ public struct JapaneseSegmenter: Sendable {
     /// directly from the end, longest English word first.
     public func englishWithParticle(_ keys: String) -> (english: String, particle: String)? {
         let chars = Array(keys)
-        guard chars.count >= 4, !english.isKnownWord(keys), RomajiComposer.compose(keys).strayLetters > 0 else { return nil }
-        for cut in stride(from: chars.count - 1, through: max(3, chars.count - 4), by: -1) {
+        guard chars.count >= 4, !english.isKnownWord(keys) else { return nil }
+        // Keys that all become kana (redde れっで, loginde ろぎんで, APIde あぴで) split only
+        // when the front can't be Japanese on its own: see `isForeign`.
+        let whole = RomajiComposer.compose(keys)
+        let clean = whole.strayLetters == 0
+        var best: (english: String, particle: String, level: Int)?
+        // The more common word wins (dog + まで, not dogma + で; Docker + まで, not Dockerma + で),
+        // then a longer known word (figma + で, not fig + まで; AWS + まで, not AWSma + で).
+        for cut in max(2, chars.count - 4)..<chars.count {
             let front = String(chars[..<cut])
             let tail = RomajiComposer.compose(String(chars[cut...]))
             guard tail.isClean, Self.trailingParticles.contains(tail.text), front.allSatisfy(\.isLetter),
-                  english.isKnownWord(front) else { continue }
-            return (front, tail.text)
+                  (front.count >= 3 && english.isKnownWord(front)) || Self.isAcronym(front) || isName(front),
+                  !clean || isForeign(front, whole: whole.text) else { continue }
+            let level = english.level(front) ?? Int.max
+            if best.map({ level < $0.level || (level == $0.level && english.isKnownWord(front)) }) ?? true { best = (front, tail.text, level) }
         }
-        return nil
+        return best.map { ($0.english, $0.particle) }
+    }
+
+    /// API, UI, PR: all capitals. Unlike before a Korean particle, capitals that are also
+    /// shifted jamo (P ㅖ, R ㄲ) count too: nobody types those jamo and then romaji.
+    static func isAcronym(_ front: String) -> Bool {
+        (2...6).contains(front.count) && front.allSatisfy(\.isUppercase)
+    }
+
+    /// Slack, GitHub, VSCode: a name typed with its capitals (`SplittingEngine.isCapitalizedName`),
+    /// ending in a whole part (VSCode is no VSCo + で).
+    private func isName(_ front: String) -> Bool {
+        guard SplittingEngine.isCapitalizedName(front),
+              let lastCapital = front.lastIndex(where: \.isUppercase) else { return false }
+        return english.isKnownWord(front) || front[lastCapital...].count >= 3
+    }
+
+    /// Per kana (end of word included), below this the front's reading isn't Japanese: login
+    /// (ろぎん), file (ふぃれ), API (あぴ) but not site (して), home (ほめ), note (のて).
+    static let foreignFrontLogP = -6.0
+    /// The same for the whole reading when the front's stray letter joins the particle: redde
+    /// (れっで), bugga (ぶっが) but not kitto (きっと), densha (でんしゃ).
+    static let foreignWholeLogP = -4.65
+
+    /// Whether keys that all make kana are still an English front and a particle: all capitals
+    /// (API), a capital inside (YouTube, GitHub), a front with a letter left over on its own
+    /// whose whole reading isn't Japanese either (red: れd, but kit: きt is kitto, きっと), or a
+    /// front whose kana Japanese doesn't put together. A capital at the start alone isn't
+    /// enough: Kyouha is きょうは typed with a capital. Checked on every span of up to four
+    /// words of Tatoeba's Japanese (2 million): only a few one-off names split (pesowo).
+    private func isForeign(_ front: String, whole: String) -> Bool {
+        if Self.isAcronym(front) || front.dropFirst().contains(where: \.isUppercase) { return true }
+        func perKana(_ kana: String) -> Double {
+            japanese.logProbability(kana: kana, partial: false) / Double(kana.count + 1)
+        }
+        let reading = RomajiComposer.compose(front)
+        if reading.strayLetters > 0 { return perKana(whole) < Self.foreignWholeLogP }
+        return perKana(reading.text) < Self.foreignFrontLogP
     }
 
     // MARK: - Search

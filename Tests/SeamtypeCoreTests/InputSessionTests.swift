@@ -318,6 +318,46 @@ final class FakeTextField: TextClient {
         #expect(field.text == "きょうは도시락은 ")
     }
 
+    /// An English word and a particle whose keys also all make kana (redde is れっで).
+    @Test(arguments: [("redde", "redで"), ("bugga", "bugが"), ("loginde", "loginで"), ("filede", "fileで"),
+                      ("linuxni", "linuxに"), ("vimmade", "vimまで")])
+    func typesEnglishWordSpelledInKanaWithParticle(keys: String, expected: String) {
+        type(session(japanese: true), keys + " ")
+        #expect(field.text == expected + " ")
+    }
+
+    /// Japanese that an English word and a particle could also spell isn't split (kit + と).
+    /// Kyouha and homede read as English on their own, as before.
+    @Test(arguments: [("kitto", "きっと"), ("densha", "でんしゃ"), ("sitede", "してで"), ("kyouha", "きょうは"),
+                      ("Kyouha", "Kyouha"), ("nomede", "のめで"), ("homede", "homede")])
+    func keepsJapaneseThatSpellsEnglishWithParticle(keys: String, expected: String) {
+        type(session(japanese: true), keys + " ")
+        #expect(field.text == expected + " ")
+    }
+
+    /// Acronyms and names typed with their capitals take a Japanese particle too.
+    @Test(arguments: [("APIde", "APIで"), ("PRwo", "PRを"), ("GitHubyori", "GitHubより"), ("VSCodede", "VSCodeで"),
+                      ("YouTubeha", "YouTubeは"), ("VSCode", "VSCode")])
+    func typesCapitalizedWordWithParticle(keys: String, expected: String) {
+        type(session(japanese: true), keys + " ")
+        #expect(field.text == expected + " ")
+    }
+
+    /// Which particle: the more common word (dog + まで, not dogma + で), then a longer known one.
+    @Test(arguments: [("dogmade", "dogまで"), ("figmade", "figmaで"), ("Dockermade", "Dockerまで"), ("AWSmade", "AWSまで")])
+    func picksTheParticleByTheWord(keys: String, expected: String) {
+        type(session(japanese: true), keys + " ")
+        #expect(field.text == expected + " ")
+    }
+
+    /// A Japanese particle beats an English + Korean word split (beau + 쇼재), and an English
+    /// word with a particle never goes in mid-word before Korean (lin + で + 그무).
+    @Test(arguments: [("beautywo", "beautyを"), ("buddyto", "buddyと"), ("linderman", "linderman")])
+    func japaneseParticleBeforeKoreanSplits(keys: String, expected: String) {
+        type(session(japanese: true), keys + " ")
+        #expect(field.text == expected + " ")
+    }
+
     /// Korean then English with no space: 오늘은 then google에서.
     @Test func typesKoreanThenEnglishWord() {
         type(session(japanese: true), "dhsmfdmsgoogledptj dlrjtdmsgithubdp ")
