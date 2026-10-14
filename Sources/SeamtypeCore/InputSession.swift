@@ -909,10 +909,16 @@ public final class InputSession {
     /// same rule as the preview, so what you see is what you get.
     private func committedLanguage() -> Language {
         let d = decide(partial: false)
-        if let shown = enginePreview, shown != d.language, !isWeakFlipAllowed(to: d, from: shown) {
+        guard let shown = enginePreview, shown != d.language else { return d.language }
+        // Kanji on screen (live conversion): Space converts them, unless the keys are an English
+        // word. A short word reads as the start of a longer Japanese one while typed and as
+        // English once it ends (zi showed 地, then went in as "zi"). Kana alone keep the usual rule.
+        if shown == .japanese, d.language == .english, isLive, !keptEnglishByStrict,
+           !EnglishModel.shared.isKnownWord(keys), RomajiComposer.compose(keys).isClean,
+           liveCandidate(for: japaneseReading(partial: false)) != nil {
             return shown
         }
-        return d.language
+        return isWeakFlipAllowed(to: d, from: shown) ? d.language : shown
     }
 
     /// Whether `decision` may replace the reading on screen: when it's confident, when it's
