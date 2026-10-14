@@ -3,6 +3,8 @@ import Foundation
 /// The text field the input method is typing into. Ranges are UTF-16, like NSString.
 public protocol TextClient: AnyObject {
     func setMarkedText(_ text: String)
+    /// Marked text in place of `range`, text the app already has (the marked text, if any, goes too).
+    func setMarkedText(_ text: String, replacing range: NSRange)
     /// `range == nil` replaces the marked text (or the selection if nothing is marked).
     func insertText(_ text: String, replacing range: NSRange?)
     func selectedRange() -> NSRange
@@ -268,8 +270,9 @@ public final class InputSession {
             return false
         }
         if let pending { finalize(pending) }
-        if switchesLanguage, keys.isEmpty, let run = takeBackPassedRun(client) {
-            startSymbol(run, client)
+        if switchesLanguage, keys.isEmpty, let run = passedRunBeforeCaret(client) {
+            passedRun = nil
+            startSymbol(run.text, client, replacing: run.range)
             return true
         }
 
@@ -446,13 +449,35 @@ public final class InputSession {
     // MARK: - Japanese conversion
 
     /// A symbol typed as its own Japanese word, shown full-width (or as the 「」・ a Japanese IME types).
-    private func startSymbol(_ symbol: String, _ client: TextClient) {
+    /// With `range`, it takes the place of what the app typed there (false if the app won't let it).
+    @discardableResult
+    private func startSymbol(_ symbol: String, _ client: TextClient, replacing range: NSRange? = nil) -> Bool {
         lastRecorded = nil
         liveSuppressed = false
         keys = symbol
         forced = .japanese
         forcedByUser = false
-        updatePreview(client)
+        guard let range else {
+            updatePreview(client)
+            return true
+        }
+        previewLanguage = .japanese
+        guard mark(japaneseDisplay(), replacing: range, client) else {
+            keys = ""
+            forced = nil
+            previewLanguage = nil
+            return false
+        }
+        return true
+    }
+
+    /// Shows `text` underlined in place of `range`, text the app already has. Some apps ignore
+    /// the range and put it at the caret instead; then it is taken back out, and false.
+    private func mark(_ text: String, replacing range: NSRange, _ client: TextClient) -> Bool {
+        client.setMarkedText(text, replacing: range)
+        guard client.markedRange().location != range.location else { return true }
+        client.setMarkedText("")
+        return false
     }
 
     /// Keeps `passedRun` up to date with a key the app is about to type.
@@ -478,14 +503,12 @@ public final class InputSession {
         return range
     }
 
-    /// Takes the digits and symbols just typed back out of the text, to type them again as Japanese.
-    private func takeBackPassedRun(_ client: TextClient) -> String? {
+    /// The digits and symbols just typed, and where they are, when the caret is right after them.
+    private func passedRunBeforeCaret(_ client: TextClient) -> (text: String, range: NSRange)? {
         let cursor = client.selectedRange()
         guard japaneseEnabled, conversion == nil, let run = passedRun, cursor.location != NSNotFound, cursor.length == 0,
               let range = passedRunRange(endingAt: cursor.location, client) else { return nil }
-        passedRun = nil
-        client.insertText("", replacing: range)
-        return run.text
+        return (run.text, range)
     }
 
     /// Full-width openers not closed yet in this sentence, so ) ] } close them full-width
@@ -662,7 +685,14 @@ public final class InputSession {
         liveSuppressed = false
         conversion = Conversion(kana: kana, keys: keys, candidates: candidates, selected: selected, userForced: userForced,
                                 numberPrefix: numberPrefix)
-        if let prefixRange { client.insertText("", replacing: prefixRange) }
+        if let prefixRange, !mark(conversion!.display, replacing: prefixRange, client) {
+            // The app keeps the number: convert the phrase on its own.
+            let phrase = String(kana.dropFirst(numberPrefix.count))
+            conversion = Conversion(kana: phrase, keys: keys, candidates: conversionCandidates(for: phrase), selected: 0,
+                                    userForced: userForced)
+            if conversion!.candidates.isEmpty { conversion = nil; commit(client: client); return }
+        }
+        let markedAlready = prefixRange != nil && conversion?.numberPrefix.isEmpty == false
         keys = ""
         forced = nil
         forcedByUser = false
@@ -670,7 +700,7 @@ public final class InputSession {
         syllableStart = nil
         enginePreview = nil
         previousLanguage = .japanese
-        client.setMarkedText(conversion!.display)
+        if !markedAlready { client.setMarkedText(conversion!.display) }
     }
 
     /// Shows the reading as katakana (or hiragana) as the selected "candidate": Return

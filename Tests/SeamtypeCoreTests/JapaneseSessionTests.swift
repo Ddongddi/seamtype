@@ -279,6 +279,28 @@ import Testing
         #expect(field.text == "「へんかん」")
     }
 
+    /// An app that won't replace text it has: the digits stay as typed, never doubled (1１).
+    @Test func switchKeyAfterDigitsWhereTheAppWontReplace() {
+        field.replacesForMarkedText = false
+        type("hello 1")
+        #expect(session.handle(.cycle, client: field))
+        #expect(field.text == "hello 1")
+        #expect(session.keys.isEmpty)
+        type(" ")
+        #expect(field.text == "hello 1 ")
+    }
+
+    /// The same app with a counter: the phrase converts on its own (no 33時).
+    @Test func counterWhereTheAppWontReplace() {
+        field.replacesForMarkedText = false
+        type("henkan ")
+        session.handle(.enter, client: field)
+        type("3ji ")
+        #expect(field.text == "変換3じ")
+        session.handle(.enter, client: field)
+        #expect(field.text == "変換3じ")
+    }
+
     /// Nothing typed by the app just before: the switch key stays a no-op (and after a space too).
     @Test func switchKeyAfterSpaceDoesNothing() {
         type("123 ")
