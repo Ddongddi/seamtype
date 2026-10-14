@@ -1,4 +1,5 @@
 import SeamtypeCore
+import Carbon
 import Cocoa
 import InputMethodKit
 import os
@@ -120,6 +121,14 @@ final class InputController: IMKInputController {
         }
         rightCommandDown = nil // ⌘ with a key is a shortcut, not a tap
         switchTapDown = nil // ⌥ or ⇧ with a key types a character, not a tap
+        if maskedField(input) {
+            // A masked password field (KakaoTalk's login, App Store's password sheet): asked to
+            // show marked text while handling a key, KakaoTalk's types that key itself (lowercase
+            // when ⇧ was already down) and drops what Seamtype puts in; App Store's loses keys.
+            // The keys go to the app as typed, as when paused.
+            log.debug("handle masked passed app=\(input.bundleIdentifier() ?? "?", privacy: .public)")
+            return false
+        }
         return MainActor.assumeIsolated {
             let key = key(for: event)
             let handled = session.handle(key, client: IMKClient(input))
@@ -132,6 +141,17 @@ final class InputController: IMKInputController {
             log.debug("handle \(String(describing: key).prefix(while: { $0 != "(" }), privacy: .public) handled=\(handled) app=\(self.session.app ?? "?", privacy: .public)")
             return handled
         }
+    }
+
+    /// A masked password field that still reaches the input method has the focus: the frontmost
+    /// app holds Secure Event Input and the field reports no caret. The frontmost app, not the
+    /// client's: App Store's password sheet is a PassKit extension while App Store holds it. (A
+    /// terminal with Secure Keyboard Entry holds it too, but reports its caret.)
+    private func maskedField(_ client: IMKTextInput) -> Bool {
+        guard IsSecureEventInputEnabled(), client.selectedRange().location == NSNotFound,
+              let pid = (CGSessionCopyCurrentDictionary() as? [String: Any])?["kCGSSessionSecureInputPID"] as? NSNumber
+        else { return false }
+        return NSWorkspace.shared.frontmostApplication?.processIdentifier == pid.int32Value
     }
 
     /// Right ⌘ pressed and released on its own, within a moment: pause or resume Seamtype in
