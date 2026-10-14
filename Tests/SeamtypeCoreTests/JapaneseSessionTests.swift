@@ -279,20 +279,27 @@ import Testing
         #expect(field.text == "「へんかん」")
     }
 
-    /// An app that won't replace text it has: the digits stay as typed, never doubled (1１).
-    @Test func switchKeyAfterDigitsWhereTheAppWontReplace() {
-        field.replacesForMarkedText = false
+    /// One digit: it becomes １, neither doubled (1１) nor lost.
+    @Test func switchKeyAfterOneDigit() {
+        type("hello 1")
+        #expect(session.handle(.cycle, client: field))
+        #expect(field.text == "hello １")
+        session.handle(.enter, client: field)
+        #expect(field.text == "hello １")
+    }
+
+    /// An app that can't read back its text (most terminals): the digits stay as typed.
+    @Test func switchKeyAfterDigitsWhereTheAppCantBeRead() {
+        field.readable = false
         type("hello 1")
         #expect(session.handle(.cycle, client: field))
         #expect(field.text == "hello 1")
         #expect(session.keys.isEmpty)
-        type(" ")
-        #expect(field.text == "hello 1 ")
     }
 
     /// The same app with a counter: the phrase converts on its own (no 33時).
-    @Test func counterWhereTheAppWontReplace() {
-        field.replacesForMarkedText = false
+    @Test func counterWhereTheAppCantBeRead() {
+        field.readable = false
         type("henkan ")
         session.handle(.enter, client: field)
         type("3ji ")

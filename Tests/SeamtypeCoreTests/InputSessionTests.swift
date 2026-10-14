@@ -14,8 +14,6 @@ final class FakeTextField: TextClient {
     var cursor = 0
     /// Simulates apps that don't support reading back their text.
     var readable = true
-    /// Simulates apps that put marked text at the caret whatever range it should replace.
-    var replacesForMarkedText = true
 
     func setMarkedText(_ s: String) {
         let ns = text as NSString
@@ -27,7 +25,6 @@ final class FakeTextField: TextClient {
     }
 
     func setMarkedText(_ s: String, replacing range: NSRange) {
-        guard replacesForMarkedText else { return setMarkedText(s) }
         let ns = text as NSString
         let target = marked.location != NSNotFound ? NSUnionRange(range, marked) : range
         text = ns.replacingCharacters(in: target, with: s)
