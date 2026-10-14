@@ -78,7 +78,7 @@ tests use `FakeTextField`). It owns the preview and hysteresis, commits, Esc rea
   vim reports, Esc is vim's whatever the app's policy says; nothing guesses the mode from keys.
 - A masked password field that still reaches the input method (KakaoTalk's login, App Store's
   password sheet) gets its keys passed straight to the app, as when paused:
-  `InputController.maskedField` sees the frontmost app holding Secure Event Input
+  `MaskedField.passesKeys` (asked by `InputController`) sees the frontmost app holding Secure Event Input
   (`kCGSSessionSecureInputPID`) and the field reporting no caret. The frontmost app, because App
   Store's sheet is a PassKit extension (the client) while App Store holds Secure Event Input.
   Asked to show marked text while handling a key, that field types the key itself (lowercase when
