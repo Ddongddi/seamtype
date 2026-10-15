@@ -46,6 +46,12 @@ made twice wins) → `SplittingEngine` (`MixedWord.swift`) → `HeuristicEngine`
   using `Data/korean_vocabulary.txt`, which is only for this) and English + Japanese particle
   (`githubで`). Its decisions have confidence 0.98 (`SplittingEngine.confidence`), above Strict
   (0.97), so they split in a strict app too.
+- English + particle, Korean or Japanese, is decided by `ParticleSplitter`: the split is one more
+  reading, scored per keystroke against the whole token as Korean (a vocabulary word, or one with
+  a particle, gets a floor), as unknown English and as kana, from word and particle
+  log-probabilities (`Weights`). Fix a wrong split there, by the scores or the word lists, not with
+  a rule for the case; the weights were tuned with `tools/eval_particles.py` and the wrong-split
+  checks below.
 - `HeuristicEngine` scores the keys per keystroke as English, Korean and Japanese, then nudges
   toward the previous word's language.
 - `render(_:as: .mixed)` uses the engine's split when the engine makes one, else the plain
