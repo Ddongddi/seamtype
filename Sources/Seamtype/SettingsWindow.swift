@@ -259,6 +259,16 @@ final class SettingsModel: ObservableObject {
         lexicon.forgetAll()
         changed()
     }
+
+    /// Adds a word by hand: remembered at once, as if corrected twice.
+    func remember(_ keys: String, as language: Language) {
+        lexicon.remember(keys, as: language)
+        changed()
+    }
+
+    func render(_ keys: String, as language: Language) -> String {
+        NoEngine().render(keys, as: language)
+    }
 }
 
 /// Lets the window read and edit lexicon.json through `LearningEngine` without loading models.
@@ -853,6 +863,7 @@ private struct LearningPane: View {
     @State private var showPending = false
     @State private var search = ""
     @State private var confirmForgetAll = false
+    @State private var adding = false
 
     private var words: [SettingsModel.Word] {
         (showPending ? model.pending : model.learned).filter {
@@ -879,7 +890,7 @@ private struct LearningPane: View {
                 EmptyList(symbol: search.isEmpty ? "text.book.closed" : "magnifyingglass",
                           title: search.isEmpty ? (showPending ? L("No words corrected once") : L("No remembered words yet"))
                                                 : L("No matches"),
-                          detail: search.isEmpty ? L("Switch a word that came out wrong with the language switch key; correct it the same way twice and it's remembered here.") : nil)
+                          detail: search.isEmpty ? L("Switch a word that came out wrong with the language switch key; correct it the same way twice and it's remembered here. Add Word… sets one right away.") : nil)
             } else {
                 List {
                     ForEach(words) { WordRow(word: $0, model: model) }
@@ -887,17 +898,87 @@ private struct LearningPane: View {
                 .listStyle(.inset(alternatesRowBackgrounds: true))
             }
             HStack {
+                Button(L("Add Word…")) { adding = true }
                 Spacer()
                 Button(L("Forget All…"), role: .destructive) { confirmForgetAll = true }
                     .disabled(model.learned.isEmpty && model.pending.isEmpty)
             }
         }
         .padding(20)
+        .sheet(isPresented: $adding) {
+            AddWordSheet(model: model) { showPending = false; search = "" }
+        }
         .confirmationDialog(L("Forget every remembered word?"), isPresented: $confirmForgetAll) {
             Button(L("Forget All"), role: .destructive) { model.forgetAll() }
         } message: {
             Text(L("Words corrected once are forgotten too. This can't be undone."))
         }
+    }
+}
+
+/// Keys and the language to write them in, remembered at once.
+private struct AddWordSheet: View {
+    @ObservedObject var model: SettingsModel
+    let added: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var typed = ""
+    @State private var language = Language.korean
+
+    /// The field gets Hangul when Seamtype converts what's typed into it; that goes back to keys.
+    private var keys: String? {
+        let trimmed = typed.trimmingCharacters(in: .whitespaces)
+        return trimmed.isEmpty ? nil : DubeolsikLayout.keys(typing: trimmed)
+    }
+
+    private var languages: [Language] {
+        model.settings.japanese ? [.english, .korean, .japanese] : [.english, .korean]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(L("Add Word")).font(.headline)
+            Text(L("Seamtype writes these keys this way from now on, as if you had corrected them twice."))
+                .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Form {
+                TextField(L("Keys"), text: $typed, prompt: Text(verbatim: "dkssud"))
+                    .font(.system(.body, design: .monospaced))
+                Picker(L("Language"), selection: $language) {
+                    ForEach(languages, id: \.self) { Text($0.displayName).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                LabeledContent(L("Result")) {
+                    if let keys {
+                        HStack(spacing: 6) {
+                            if keys != typed.trimmingCharacters(in: .whitespaces) {
+                                Text(verbatim: keys).font(.system(.body, design: .monospaced)).foregroundStyle(.secondary)
+                                Image(systemName: "arrow.right").font(.caption).foregroundStyle(.tertiary)
+                            }
+                            Text(verbatim: model.render(keys, as: language)).fontWeight(.medium)
+                        }
+                    } else if !typed.trimmingCharacters(in: .whitespaces).isEmpty {
+                        Text(L("Type the keys as letters, one word without spaces.")).foregroundStyle(.red)
+                    }
+                }
+                if let keys, let current = model.learned.first(where: { $0.keys == keys }) {
+                    Text(L("Replaces %@ (%@).", current.text, current.language.displayName))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            HStack {
+                Spacer()
+                Button(L("Cancel"), role: .cancel) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Button(L("Add")) {
+                    if let keys { model.remember(keys, as: language) }
+                    added()
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(keys == nil)
+            }
+        }
+        .padding(20)
+        .frame(width: 420)
     }
 }
 

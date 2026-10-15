@@ -147,4 +147,27 @@ import Testing
         learning.forgetAll()
         #expect(LearningEngine(base: Fixed(language: .english), storeURL: url).learned.isEmpty)
     }
+
+    /// A word added by hand in the settings window is learned at once, over a pending correction.
+    @Test func rememberAddsALearnedWord() {
+        let url = dir.appendingPathComponent("lexicon.json")
+        let learning = LearningEngine(base: Fixed(language: .english), storeURL: url)
+        learning.learn("gst", as: .japanese)
+        learning.remember("gst", as: .korean)
+        #expect(learning.learned == ["gst": .korean] && learning.pending.isEmpty)
+        let decision = LearningEngine(base: Fixed(language: .english), storeURL: url).decide("gst", context: DecisionContext())
+        #expect(decision.language == .korean && decision.output == "ㅎㄴㅅ" && decision.confidence == 1)
+    }
+
+    /// What a keys field that Seamtype typed into holds goes back to the keys.
+    @Test func keysTypingHangul() {
+        #expect(DubeolsikLayout.keys(typing: "dkssud") == "dkssud")
+        #expect(DubeolsikLayout.keys(typing: "안녕") == "dkssud")
+        #expect(DubeolsikLayout.keys(typing: "괜찮아") == "rhoscksgdk")
+        #expect(DubeolsikLayout.keys(typing: "밖에있어") == "qkRdpdlTdj")
+        #expect(DubeolsikLayout.keys(typing: "github에") == "githubdp")
+        #expect(DubeolsikLayout.keys(typing: "ㅋㅋ") == "zz")
+        #expect(DubeolsikLayout.keys(typing: "きょう") == nil)
+        #expect(DubeolsikLayout.keys(typing: "a b") == nil && DubeolsikLayout.keys(typing: "go.") == nil)
+    }
 }

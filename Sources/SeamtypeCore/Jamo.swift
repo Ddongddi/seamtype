@@ -70,4 +70,60 @@ public enum DubeolsikLayout {
         guard key.isASCII, let lowered = key.lowercased().first else { return nil }
         return lower[lowered]
     }
+
+    /// The keys that type `text` (`안녕` → `dkssud`), Latin letters as they are; nil when it has
+    /// anything else (spaces, punctuation, kana, which could come from more than one romaji). A text field that
+    /// Seamtype itself types into gets Hangul for Korean-looking keys, and this undoes it.
+    public static func keys(typing text: String) -> String? {
+        var keys = ""
+        for character in text {
+            if character.isASCII, character.isLetter {
+                keys.append(character)
+            } else if let jamos = Jamo.decompose(character) {
+                for jamo in jamos {
+                    guard let key = self.key[jamo] else { return nil }
+                    keys.append(key)
+                }
+            } else {
+                return nil
+            }
+        }
+        return keys
+    }
+
+    private static let key: [Character: Character] = {
+        var map: [Character: Character] = [:]
+        for (key, jamo) in lower { map[jamo] = key }
+        for (key, jamo) in shifted { map[jamo] = key }
+        return map
+    }()
+}
+
+extension Jamo {
+    /// A syllable or compatibility jamo as the single jamo typed for it, compounds split
+    /// (`괜` → ㄱ ㅗ ㅐ ㄴ); nil for anything else.
+    static func decompose(_ character: Character) -> [Character]? {
+        guard let scalar = character.unicodeScalars.first, character.unicodeScalars.count == 1 else { return nil }
+        func split(_ jamo: Character) -> [Character] {
+            if let parts = vowelSplits[jamo] { return parts }
+            if let (first, second) = finalSplits[jamo] { return [first, second] }
+            return [jamo]
+        }
+        switch scalar.value {
+        case 0xAC00...0xD7A3:
+            let index = Int(scalar.value - 0xAC00)
+            let cho = choseong[index / (21 * 28)], jung = jungseong[index / 28 % 21]
+            return [cho] + split(jung) + (jongseong[index % 28].map(split) ?? [])
+        case 0x3131...0x3163:
+            return split(character)
+        default:
+            return nil
+        }
+    }
+
+    private static let vowelSplits: [Character: [Character]] = {
+        var map: [Character: [Character]] = [:]
+        for (pair, combined) in vowelCombos { map[combined] = Array(pair) }
+        return map
+    }()
 }

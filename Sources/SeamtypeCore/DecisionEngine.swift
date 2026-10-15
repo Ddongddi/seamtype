@@ -284,6 +284,17 @@ public final class LearningEngine: DecisionEngine, @unchecked Sendable {
         })
     }
 
+    /// Remembers the keys as `language` right away, as two corrections would (added by hand in
+    /// the settings window).
+    public func remember(_ keys: String, as language: Language) {
+        guard !keys.isEmpty else { return }
+        persist(lock.withLock {
+            store.learned[keys] = language
+            store.once[keys] = nil
+            return store
+        })
+    }
+
     /// Forgets every learned and pending word.
     public func forgetAll() {
         persist(lock.withLock {

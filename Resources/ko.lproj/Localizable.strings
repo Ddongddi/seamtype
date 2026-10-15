@@ -124,7 +124,7 @@
 "No words corrected once" = "한 번 고친 단어가 없습니다";
 "No remembered words yet" = "아직 기억한 단어가 없습니다";
 "No matches" = "찾는 단어가 없습니다";
-"Switch a word that came out wrong with the language switch key; correct it the same way twice and it's remembered here." = "잘못 바뀐 단어는 언어 바꾸기 키로 바꾸세요. 같은 쪽으로 두 번 고치면 여기에 기억됩니다.";
+"Switch a word that came out wrong with the language switch key; correct it the same way twice and it's remembered here. Add Word… sets one right away." = "잘못 바뀐 단어는 언어 바꾸기 키로 바꾸세요. 같은 쪽으로 두 번 고치면 여기에 기억됩니다. 단어 추가…로 바로 정할 수도 있습니다.";
 "Type here on the English layout, e.g. dkssud hello" = "여기에 영문 자판으로 쳐 보세요. 예: dkssud hello";
 
 /* Pause, under the caret */
@@ -191,3 +191,11 @@
 "right, alone" = "오른쪽 단독";
 "⌥ and Space together. It no longer types a no-break space." = "⌥와 Space를 함께. 줄바꿈 없는 공백은 더 이상 입력되지 않습니다.";
 "１２３ after Japanese; Space offers 123." = "일본어 뒤 숫자를 １２３으로 씁니다. Space로 123을 고릅니다.";
+"Add Word…" = "단어 추가…";
+"Add Word" = "단어 추가";
+"Seamtype writes these keys this way from now on, as if you had corrected them twice." = "이 키는 앞으로 이렇게 씁니다. 같은 쪽으로 두 번 고친 것과 같습니다.";
+"Keys" = "키";
+"Language" = "언어";
+"Result" = "결과";
+"Type the keys as letters, one word without spaces." = "키를 영문자로, 띄어쓰기 없이 한 단어로 넣으세요.";
+"Replaces %@ (%@)." = "기억한 것을 바꿉니다: %@(%@)";

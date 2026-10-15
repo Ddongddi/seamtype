@@ -151,7 +151,9 @@ command; the app never gets the Space key, so its text replacements don't fire.
 
 A correction changes only that word, so a stray switch doesn't stick. Correct the same keys the same
 way a second time and Seamtype remembers it; switching a word back to Seamtype's own guess forgets
-it.
+it. To set one before it ever comes out wrong, use **Add Word…** under the learned words in the
+settings window: keys and a language (`gst` → English), remembered at once as if corrected twice. If
+what you type into the keys field turns into Hangul, it is taken back as the keys.
 
 ### Text replacements
 
@@ -208,7 +210,7 @@ From the input menu (the menu bar, while Seamtype is selected) you can:
 
 The settings window has Languages (Japanese and its options), Keys (the language switch keys,
 Return, right ⌘), per-app behavior, Try Typing (how each word was decided, with scores), the learned
-words (forget one or all) and About. The kanji candidate order resets under Japanese input in
+words (add one by hand, forget one or all) and About. The kanji candidate order resets under Japanese input in
 Languages. Changes apply at once.
 
 ### Settings files
