@@ -4,8 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Seamtype is a macOS InputMethodKit input method: the user types on QWERTY and Seamtype decides per
 word whether it is English, Korean (2-set) or Japanese romaji (kanji through macOS's own engine, AzooKey where it can't be loaded). README.md
-(Korean, the main one) and README.en.md (English) cover the keys, settings files, accuracy numbers
-and data licenses; read one before changing behavior users see, and keep both in step. The website,
+(Korean, the main one) and README.en.md (English) are the short overview (install, basic keys, data
+licenses); the details are in `docs/` (`usage`, `settings`, `how-it-works` with the accuracy
+numbers, `development`), each as `<name>.md` (Korean) and `<name>.en.md`. Read them before changing
+behavior users see, and keep both languages in step. The website,
 https://nyttastudio.com/seamtype/ (Korean only), lives in `seamtype/` of the nyttastudio/nyttastudio.com
 repo (Cloudflare Pages); keep its copy in step too.
 

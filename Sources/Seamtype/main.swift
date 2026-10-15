@@ -4,7 +4,7 @@ import InputMethodKit
 import Carbon
 
 // `Seamtype --vim insert|normal|off [--app <bundle id>]`: vim tells the input method which mode
-// it is in, and in which app (see README, "vim"), so normal-mode keys go straight through without
+// it is in, and in which app (see docs/usage.md, "vim"), so normal-mode keys go straight through without
 // guessing. Runs before anything else loads: it is started on every mode change.
 if let flag = CommandLine.arguments.firstIndex(of: "--vim") {
     let args = CommandLine.arguments
