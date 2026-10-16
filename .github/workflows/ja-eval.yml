@@ -20,7 +20,7 @@ jobs:
         run: ls .build/checkouts/AzooKeyKanaKanjiConverter/Sources/KanaKanjiConverterModuleWithDefaultDictionary/azooKey_dictionary_storage/Dictionary 2>&1 | head -4
       - name: Romaji to hiragana
         run: .build/debug/seamtype-cli --kana < tools/ja_eval_keys.txt
-      - name: Eval: keys + Space through the session
+      - name: Eval keys + Space through the session
         run: .build/debug/seamtype-cli --type --japanese < tools/ja_eval_keys.txt
-      - name: Eval: all candidates for the readings
+      - name: Eval all candidates for the readings
         run: .build/debug/seamtype-cli --kana < tools/ja_eval_keys.txt | cut -f1 | .build/debug/seamtype-cli --convert-all
