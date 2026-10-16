@@ -1,0 +1,26 @@
+name: ja-eval
+
+on:
+  push:
+    branches: [ja-eval]
+
+jobs:
+  eval:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: .build
+          key: spm-ja-eval-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: spm-ja-eval-${{ runner.os }}-
+      - name: Build
+        run: swift build 2>&1 | tail -3
+      - name: Dictionary in the checkout
+        run: ls .build/checkouts/AzooKeyKanaKanjiConverter/Sources/KanaKanjiConverterModuleWithDefaultDictionary/azooKey_dictionary_storage/Dictionary 2>&1 | head -4
+      - name: Romaji to hiragana
+        run: .build/debug/seamtype-cli --kana < tools/ja_eval_keys.txt
+      - name: Eval: keys + Space through the session
+        run: .build/debug/seamtype-cli --type --japanese < tools/ja_eval_keys.txt
+      - name: Eval: all candidates for the readings
+        run: .build/debug/seamtype-cli --kana < tools/ja_eval_keys.txt | cut -f1 | .build/debug/seamtype-cli --convert-all
