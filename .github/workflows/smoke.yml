@@ -1,0 +1,9 @@
+name: smoke
+on:
+  push:
+    branches: [ja-eval]
+jobs:
+  hi:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo smoke-ok
