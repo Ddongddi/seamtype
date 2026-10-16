@@ -43,7 +43,9 @@ jobs:
       - name: Kana
         run: cut -f1 /tmp/ja_sentences.tsv | .build/release/seamtype-cli --kana > /tmp/kana.tsv; wc -l /tmp/kana.tsv
       - name: Convert all
-        run: cut -f1 /tmp/kana.tsv | .build/release/seamtype-cli --convert-all | grep -P '\t' > /tmp/conv.tsv; wc -l /tmp/conv.tsv
+        run: |
+          cut -f1 /tmp/kana.tsv | .build/release/seamtype-cli --convert-all | awk -F'\t' 'NF>1' > /tmp/conv.tsv
+          wc -l /tmp/conv.tsv
       - name: Score top-1
         run: python3 tools/ja_dataset.py score /tmp/ja_sentences.tsv /tmp/conv.tsv
       - uses: actions/upload-artifact@v4

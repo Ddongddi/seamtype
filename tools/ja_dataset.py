@@ -68,8 +68,12 @@ def score(pairs: str, conv: str) -> None:
     for line in Path(pairs).read_text(encoding="utf-8").splitlines():
         fields = line.split("\t")
         if len(fields) == 2:
+            # The keys carry no punctuation, so trailing punctuation is not part of the
+            # reading: strip it on both sides. Inner punctuation stays and is reported.
             keys.append(fields[0])
-            exp.append(fields[1])
+            exp.append(fields[1].strip().rstrip("。！？!?…"))
+    inner = sum(1 for e in exp if any(ch in e for ch in "、。！？!?"))
+    print(f"rows with inner punctuation (beyond exact match for either engine): {inner}")
     rows = [l for l in Path(conv).read_text(encoding="utf-8").splitlines() if "\t" in l]
     print(f"score: {len(exp)} pairs, {len(rows)} result rows")
     n = min(len(exp), len(rows))
