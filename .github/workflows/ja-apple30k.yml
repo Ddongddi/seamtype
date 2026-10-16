@@ -1,0 +1,31 @@
+name: ja-apple30k
+
+on:
+  push:
+    branches: [ja-apple30k]
+
+jobs:
+  apple30k:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: .build
+          key: spm-ja-data-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: spm-ja-data-${{ runner.os }}-
+      - name: Build
+        run: swift build -c release 2>&1 | tail -3
+      - name: Apple engine, convert all 30k readings
+        run: |
+          wc -l kana30k.tsv
+          SEAMTYPE_ENGINE=apple .build/release/seamtype-cli --convert-all < kana30k.tsv > /tmp/conv_apple30k_raw.tsv
+          awk -F'\t' 'NF>1' /tmp/conv_apple30k_raw.tsv > /tmp/conv_apple30k.tsv
+          wc -l /tmp/conv_apple30k.tsv /tmp/conv_apple30k_raw.tsv
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: seamtype-apple30k-results
+          path: |
+            /tmp/conv_apple30k.tsv
+            /tmp/conv_apple30k_raw.tsv
