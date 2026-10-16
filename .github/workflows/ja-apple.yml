@@ -1,0 +1,24 @@
+name: ja-apple
+
+on:
+  push:
+    branches: [ja-apple]
+
+jobs:
+  apple:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: .build
+          key: spm-ja-data-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: spm-ja-data-${{ runner.os }}-
+      - name: Build
+        run: swift build -c release 2>&1 | tail -3
+      - name: Kana once
+        run: .build/release/seamtype-cli --kana < tools/ja_eval_keys.txt | cut -f1 > /tmp/kana48.txt; wc -l /tmp/kana48.txt
+      - name: Apple engine, top candidates
+        run: SEAMTYPE_ENGINE=apple .build/release/seamtype-cli --convert < /tmp/kana48.txt
+      - name: Apple engine, all candidates
+        run: SEAMTYPE_ENGINE=apple .build/release/seamtype-cli --convert-all < /tmp/kana48.txt | awk -F'\t' 'NF>1'
