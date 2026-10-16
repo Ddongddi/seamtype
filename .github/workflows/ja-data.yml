@@ -1,0 +1,56 @@
+name: ja-data
+
+on:
+  push:
+    branches: [ja-data]
+
+jobs:
+  data:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch Tatoeba Japanese
+        run: |
+          curl -sL https://downloads.tatoeba.org/exports/per_language/jpn/jpn_sentences.tsv.bz2 | bunzip2 > /tmp/jpn.tsv
+          wc -l /tmp/jpn.tsv
+      - name: Sample
+        run: python3 tools/ja_dataset.py sample /tmp/jpn.tsv /tmp/sample.txt
+      - name: Romanize with the macOS tokenizer
+        run: swift tools/ja_romaji.swift < /tmp/sample.txt > /tmp/tokens.jsonl && wc -l /tmp/tokens.jsonl
+      - name: Build keys and sentence
+        run: python3 tools/ja_dataset.py build /tmp/tokens.jsonl /tmp/ja_sentences.tsv && head -3 /tmp/ja_sentences.tsv
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ja-sentences
+          path: /tmp/ja_sentences.tsv
+
+  seamtype-eval:
+    needs: data
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: .build
+          key: spm-ja-data-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: spm-ja-data-${{ runner.os }}-
+      - uses: actions/download-artifact@v4
+        with:
+          name: ja-sentences
+          path: /tmp
+      - name: Build
+        run: swift build -c release 2>&1 | tail -3
+      - name: Kana
+        run: cut -f1 /tmp/ja_sentences.tsv | .build/release/seamtype-cli --kana > /tmp/kana.tsv; wc -l /tmp/kana.tsv
+      - name: Convert all
+        run: cut -f1 /tmp/kana.tsv | .build/release/seamtype-cli --convert-all | grep -P '\t' > /tmp/conv.tsv; wc -l /tmp/conv.tsv
+      - name: Score top-1
+        run: python3 tools/ja_dataset.py score /tmp/ja_sentences.tsv /tmp/conv.tsv
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: seamtype-results
+          path: |
+            /tmp/conv.tsv
+            /tmp/kana.tsv
+            /tmp/ja_misses.tsv
